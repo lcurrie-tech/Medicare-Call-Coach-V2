@@ -1,0 +1,4 @@
+[functions.leaderboard-celebrations]
+# The handler checks the existing public TV application key in the apikey header.
+# Publishable keys are not JWTs. The response contains only event IDs and agent names.
+verify_jwt = false
