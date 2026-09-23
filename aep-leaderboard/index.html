@@ -38,7 +38,7 @@ footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;m
 <div class="wrap">
 <header>
 <div>
-<div class="eyebrow">RSM Sales Floor</div>
+<div class="eyebrow">Palmetto Medicare Sales Floor</div>
 <h1>2026 AEP LEADERBOARD</h1>
 <div class="sub">Live production, activity and incentive progress</div>
 </div>
@@ -52,13 +52,13 @@ footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;m
 </colgroup>
 <thead><tr>
 <th>Rank</th><th>Agent Full Name</th><th>Apps Today</th><th>Apps This Week</th>
-<th>AEP Apps</th><th>Calls Today</th><th>Talk Time Today</th><th>Next Milestone</th>
+<th>AEP Apps</th><th>Calls Today</th><th>Talk Time Today*</th><th>Next Milestone</th>
 </tr></thead>
 <tbody id="rows"><tr><td colspan="8" style="padding:60px;text-align:center;color:#9fb0c7">Loading leaderboard...</td></tr></tbody>
 </table>
 </div>
 <div id="error" class="error"></div>
-<footer><span>AEP window: Oct 15 - Dec 31, 2026</span><span>Auto-refresh: 15 seconds</span></footer>
+<footer><span>* Talk time backfill currently through 10:59 AM CT; live duration sync is being corrected.</span><span>Auto-refresh: 15 seconds</span></footer>
 </div>
 <script>
 const U="https://tlyvlodcvqmasphavsod.supabase.co";
@@ -75,9 +75,8 @@ async function load(){
     if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");
     const d=await res.json();
     document.getElementById("rows").innerHTML=d.map(r=>{
-      const medal=r.rank===1?"1st":r.rank===2?"2nd":r.rank===3?"3rd":"";
       return '<tr>'+
-      '<td class="rank '+rankClass(r.rank)+'">'+(medal?medal+" - ":"")+r.rank+'</td>'+
+      '<td class="rank '+rankClass(r.rank)+'">'+r.rank+'</td>'+
       '<td class="agent">'+esc(r.full_name)+'</td>'+
       '<td>'+r.apps_today+'</td>'+
       '<td>'+r.apps_this_week+'</td>'+
