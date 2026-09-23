@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 AEP Leaderboard</title>
+<style>
+:root{--bg:#06101d;--line:#203451;--text:#f7f9fc;--muted:#9fb0c7;--gold:#f4c95d;--green:#54d49a;--silver:#cbd5e1;--bronze:#d69e72}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#122640 0,#06101d 45%);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.wrap{max-width:1800px;margin:0 auto;padding:34px 38px 42px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.eyebrow{font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:9px}
+h1{margin:0;font-size:clamp(34px,4vw,64px);line-height:.95;letter-spacing:-.04em}
+.sub{color:var(--muted);margin-top:12px;font-size:16px}
+.status{text-align:right;color:var(--muted);font-size:14px}
+.status strong{display:block;color:var(--text);font-size:17px;margin-bottom:5px}
+.dot{display:inline-block;width:9px;height:9px;background:var(--green);border-radius:50%;margin-right:8px;box-shadow:0 0 15px rgba(84,212,154,.75)}
+.board{background:linear-gradient(180deg,rgba(16,34,58,.96),rgba(10,24,41,.96));border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead th{background:#0b1728;color:#aab9cc;text-transform:uppercase;letter-spacing:.075em;font-size:12px;font-weight:800;padding:17px 14px;border-bottom:1px solid var(--line);text-align:center}
+thead th:nth-child(2){text-align:left}
+tbody td{padding:20px 14px;border-bottom:1px solid rgba(32,52,81,.72);font-size:18px;font-weight:650;text-align:center;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.rank{font-size:23px;font-weight:900}
+.r1{color:var(--gold)} .r2{color:var(--silver)} .r3{color:var(--bronze)}
+.agent{text-align:left;font-size:21px;font-weight:820;overflow:hidden;text-overflow:ellipsis}
+.aep{font-size:29px;font-weight:950;color:var(--gold)}
+.milestone{text-align:left;white-space:normal;line-height:1.25;font-size:17px}
+.bar{height:7px;background:#182d49;border-radius:99px;overflow:hidden;margin-top:9px}
+.fill{height:100%;background:linear-gradient(90deg,#e9b949,#f7d774);border-radius:99px}
+footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;margin-top:14px;padding:0 4px}
+.error{display:none;margin-top:16px;padding:14px;border:1px solid #67333a;background:#30171d;color:#ffb8c0;border-radius:12px}
+@media(max-width:1100px){.wrap{padding:22px 18px}.board{overflow-x:auto}table{min-width:1150px}.status{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div>
+<div class="eyebrow">RSM Sales Floor</div>
+<h1>2026 AEP LEADERBOARD</h1>
+<div class="sub">Live production, activity and incentive progress</div>
+</div>
+<div class="status"><strong><span class="dot"></span>Live</strong><span id="updated">Connecting...</span></div>
+</header>
+<div class="board">
+<table>
+<colgroup>
+<col style="width:6%"><col style="width:18%"><col style="width:10%"><col style="width:11%">
+<col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:23%">
+</colgroup>
+<thead><tr>
+<th>Rank</th><th>Agent Full Name</th><th>Apps Today</th><th>Apps This Week</th>
+<th>AEP Apps</th><th>Calls Today</th><th>Talk Time Today</th><th>Next Milestone</th>
+</tr></thead>
+<tbody id="rows"><tr><td colspan="8" style="padding:60px;text-align:center;color:#9fb0c7">Loading leaderboard...</td></tr></tbody>
+</table>
+</div>
+<div id="error" class="error"></div>
+<footer><span>AEP window: Oct 15 - Dec 31, 2026</span><span>Auto-refresh: 15 seconds</span></footer>
+</div>
+<script>
+const U="https://tlyvlodcvqmasphavsod.supabase.co";
+const K="sb_publishable_RYzGylmP61WORQ6aGouVWQ_PEvRJtBu";
+const E=U+"/rest/v1/leaderboard_public?select=rank,full_name,apps_today,apps_this_week,aep_apps,calls_today,talk_time_seconds_today,next_milestone&order=rank.asc";
+function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]))}
+function talk(s){s=Number(s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?h+"h "+m+"m":m+"m"}
+function rankClass(r){return r===1?"r1":r===2?"r2":r===3?"r3":""}
+function progress(a){let low=0,target=200;for(const x of [100,150,200]){if(a<x){target=x;break}low=x}if(a>=200)return 100;return Math.max(0,Math.min(100,((a-low)/(target-low))*100))}
+async function load(){
+  const er=document.getElementById("error");
+  try{
+    const res=await fetch(E,{headers:{apikey:K}});
+    if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");
+    const d=await res.json();
+    document.getElementById("rows").innerHTML=d.map(r=>{
+      const medal=r.rank===1?"1st":r.rank===2?"2nd":r.rank===3?"3rd":"";
+      return '<tr>'+
+      '<td class="rank '+rankClass(r.rank)+'">'+(medal?medal+" - ":"")+r.rank+'</td>'+
+      '<td class="agent">'+esc(r.full_name)+'</td>'+
+      '<td>'+r.apps_today+'</td>'+
+      '<td>'+r.apps_this_week+'</td>'+
+      '<td class="aep">'+r.aep_apps+'</td>'+
+      '<td>'+r.calls_today+'</td>'+
+      '<td>'+talk(r.talk_time_seconds_today)+'</td>'+
+      '<td class="milestone"><div>'+esc(r.next_milestone)+'</div><div class="bar"><div class="fill" style="width:'+progress(Number(r.aep_apps||0))+'%"></div></div></td>'+
+      '</tr>';
+    }).join("");
+    document.getElementById("updated").textContent="Updated "+new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date())+" CT";
+    er.style.display="none";
+  }catch(err){
+    er.textContent=err.message||String(err);
+    er.style.display="block";
+  }
+}
+load();
+setInterval(load,15000);
+</script>
+</body>
+</html>
