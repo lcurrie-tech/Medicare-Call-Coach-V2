@@ -37,6 +37,33 @@ tbody tr:last-child td{border-bottom:0}
 .office-stat-value{margin-top:7px;font-size:46px;line-height:1;font-weight:950;color:var(--gold)}
 footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;margin-top:14px;padding:0 4px}
 .error{display:none;margin-top:16px;padding:14px;border:1px solid #67333a;background:#30171d;color:#ffb8c0;border-radius:12px}
+.tv-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.tv-controls button,.celebration-close{font:inherit;font-size:12px;color:#cbd5e1;background:#10213a;border:1px solid #304766;border-radius:9px;padding:9px 13px;cursor:pointer}
+.tv-controls button:hover,.tv-controls button:focus-visible,.celebration-close:focus-visible{border-color:var(--gold);color:#fff;outline:2px solid var(--gold);outline-offset:3px}
+.tv-controls button[aria-pressed="true"]{color:var(--green);border-color:#347e61}
+.tv-controls button:disabled{opacity:.45;cursor:default}
+#celebrationStatus{font-size:12px;color:var(--muted);margin-left:auto}
+.celebration[hidden]{display:none}
+.celebration{position:fixed;inset:0;z-index:100;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#183554 0%,#081624 58%,#030a13 100%);isolation:isolate}
+.celebration:before{content:"";position:absolute;inset:-60%;z-index:-1;background:repeating-conic-gradient(from 0deg,transparent 0deg 20deg,#f4c95d0a 21deg 24deg,transparent 25deg 45deg);animation:rays 35s linear infinite}
+.celebration-content{text-align:center;max-width:94vw;padding:30px;animation:celebration-enter .65s cubic-bezier(.16,1,.3,1) both;z-index:2}
+.celebration-brand{color:#a7bbd3;font-weight:800;letter-spacing:.24em;text-transform:uppercase;font-size:clamp(12px,1.2vw,20px)}
+.celebration-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid #a68a42;background:#f4c95d12;color:var(--gold);border-radius:99px;padding:12px 24px;margin:30px 0 22px;font-size:clamp(15px,1.6vw,27px);letter-spacing:.16em;font-weight:900}
+.celebration-star{color:var(--gold);font-size:clamp(38px,5vw,90px);line-height:1;text-shadow:0 0 70px #f4c95d77}
+.celebration h2{font-size:clamp(40px,7.7vw,140px);line-height:1.05;letter-spacing:-.045em;margin:20px 0;color:#fff;text-wrap:balance;text-shadow:0 4px 40px #0006}
+.celebration-message{font-size:clamp(20px,2.6vw,44px);font-weight:750;color:#e3ebf5;margin:0}
+.celebration-credit{color:var(--gold);font-size:clamp(18px,2vw,34px);font-weight:900;letter-spacing:.1em;margin-top:30px}
+.celebration-bottom{position:absolute;bottom:28px;left:0;right:0;text-align:center;color:#8095ad;font-size:14px;letter-spacing:.06em}
+.celebration-close{position:absolute;right:22px;top:20px;z-index:4;background:#10213ab0}
+.celebration-progress{position:absolute;bottom:0;left:0;height:5px;width:100%;background:var(--gold);transform-origin:left;animation:celebration-progress 9s linear forwards}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.confetti i{position:absolute;top:-8vh;left:var(--x);width:var(--size);height:calc(var(--size)*.45);background:var(--color);opacity:0;animation:confetti-fall var(--duration) var(--delay) linear both}
+body.celebrating{overflow:hidden}
+@keyframes rays{to{transform:rotate(360deg)}}
+@keyframes celebration-enter{from{opacity:0;transform:translateY(35px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes confetti-fall{0%{opacity:0;transform:translate(0,-5vh) rotate(0deg)}8%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translate(var(--drift),115vh) rotate(var(--spin))}}
+@keyframes celebration-progress{to{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){.celebration:before,.celebration-content,.celebration-progress{animation:none}.confetti{display:none}}
 @media(max-width:1100px){.wrap{padding:22px 18px}.board{overflow-x:auto}table{min-width:900px}.status{display:none}}
 </style>
 </head>
@@ -82,11 +109,49 @@ footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;m
 </div>
 <div id="error" class="error"></div>
 <footer><span>AEP window: Oct 15 - Dec 31, 2026</span><span>Auto-refresh: 15 seconds</span></footer>
+<div class="tv-controls" aria-label="TV controls">
+  <button id="soundButton" type="button" aria-pressed="false">Enable sound</button>
+  <button id="previewButton" type="button">Preview shout-out</button>
+  <button id="fullscreenButton" type="button">Full screen</button>
+  <span id="celebrationStatus" role="status">Connecting shout-outs…</span>
 </div>
+</div>
+<section id="celebration" class="celebration" aria-label="Application celebration" aria-live="polite" hidden>
+  <button id="closeCelebration" class="celebration-close" type="button">Skip celebration</button>
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
+  <div class="celebration-content">
+    <div class="celebration-brand">Palmetto Medicare Sales Floor</div>
+    <div id="celebrationBadge" class="celebration-badge">APPLICATION RECORDED</div>
+    <div class="celebration-star" aria-hidden="true">★</div>
+    <h2 id="celebrationName"></h2>
+    <p class="celebration-message">Another win for Palmetto!</p>
+    <div id="celebrationCredit" class="celebration-credit">+1 APPLICATION</div>
+  </div>
+  <div id="celebrationFooter" class="celebration-bottom">LET’S HEAR IT FOR THE TEAM</div>
+  <div class="celebration-progress" aria-hidden="true"></div>
+</section>
+<script id="celebration-logic">
+// Event IDs, rather than daily totals, survive midnight resets and webhook retries.
+class CelebrationFeed {
+  constructor(){this.cursor=null;this.seen=new Set();}
+  accept(page){
+    if(!Number.isSafeInteger(page.cursor)||page.cursor<0||!Array.isArray(page.events))throw new Error('Invalid shout-out feed');
+    if(this.cursor===null){this.cursor=page.cursor;return [];}
+    const events=page.events.filter(e=>Number.isSafeInteger(e.id)&&e.id>this.cursor&&e.id<=page.cursor&&typeof e.agentName==='string'&&e.agentName.trim()&&!this.seen.has(e.id)).sort((a,b)=>a.id-b.id);
+    const unique=[];
+    for(const e of events){if(!this.seen.has(e.id)){this.seen.add(e.id);unique.push(e);}}
+    this.cursor=Math.max(this.cursor,page.cursor);
+    // IDs at or below the cursor are also rejected, so the set can stay bounded.
+    if(this.seen.size>500)this.seen=new Set(Array.from(this.seen).slice(-100));
+    return unique;
+  }
+}
+</script>
 <script>
 const U="https://tlyvlodcvqmasphavsod.supabase.co";
 const K="sb_publishable_RYzGylmP61WORQ6aGouVWQ_PEvRJtBu";
 const E=U+"/rest/v1/leaderboard_public?select=rank,full_name,apps_today,apps_this_week,aep_apps,next_milestone&order=rank.asc";
+let boardRows=[];
 function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]))}
 function rankClass(r){return r===1?"r1":r===2?"r2":r===3?"r3":""}
 function progress(a){let low=0,target=200;for(const x of [100,150,200]){if(a<x){target=x;break}low=x}if(a>=200)return 100;return Math.max(0,Math.min(100,((a-low)/(target-low))*100))}
@@ -96,6 +161,7 @@ async function load(){
     const res=await fetch(E,{headers:{apikey:K}});
     if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");
     const d=await res.json();
+    boardRows=d;
     document.getElementById("rows").innerHTML=d.map(r=>{
       return '<tr>'+
       '<td class="rank '+rankClass(r.rank)+'">'+r.rank+'</td>'+
@@ -121,6 +187,122 @@ async function load(){
 }
 load();
 setInterval(load,15000);
+
+const feed=new CelebrationFeed();
+const celebrationQueue=[];
+const overlay=document.getElementById('celebration');
+const soundButton=document.getElementById('soundButton');
+const previewButton=document.getElementById('previewButton');
+const feedStatus=document.getElementById('celebrationStatus');
+let pollBusy=false,playing=false,soundEnabled=false,audioContext=null,finishTimer=null,speechTimer=null,previousFocus=null;
+const speechSupported='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+function chime(){
+  if(!soundEnabled||!audioContext||audioContext.state!=='running')return;
+  [523.25,659.25,783.99,1046.5].forEach((frequency,i)=>{
+    const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();
+    const start=audioContext.currentTime+i*.12;
+    oscillator.type='sine';oscillator.frequency.value=frequency;
+    gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.13,start+.02);gain.gain.exponentialRampToValueAtTime(.001,start+.55);
+    oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(start);oscillator.stop(start+.6);
+    oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+  });
+}
+function speak(text){
+  if(!soundEnabled||!speechSupported)return;
+  const utterance=new SpeechSynthesisUtterance(text);
+  const voices=window.speechSynthesis.getVoices();
+  utterance.voice=voices.find(v=>v.lang==='en-US'&&v.localService)||voices.find(v=>v.lang.startsWith('en'))||null;
+  utterance.lang='en-US';utterance.rate=1.02;utterance.pitch=1.06;utterance.volume=1;
+  utterance.onerror=()=>{feedStatus.textContent='Voice unavailable on this device · visual shout-outs are on';};
+  window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);
+}
+soundButton.addEventListener('click',async()=>{
+  soundEnabled=!soundEnabled;
+  soundButton.setAttribute('aria-pressed',String(soundEnabled));
+  soundButton.textContent=soundEnabled?'Mute sound':'Enable sound';
+  if(!soundEnabled){if(speechSupported)window.speechSynthesis.cancel();return;}
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  try{if(Audio){audioContext=audioContext||new Audio();await audioContext.resume();}}catch{}
+  chime();
+  // Explicit speech from this click also unlocks spoken announcements on TV browsers.
+  speak('Palmetto shout-outs are on. Let’s celebrate the next application!');
+  if(!speechSupported)feedStatus.textContent='Chime enabled · this browser has no spoken voice';
+});
+function makeConfetti(){
+  const container=document.getElementById('confetti');container.replaceChildren();
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const colors=['#f4c95d','#fff0be','#54d49a','#e9f1ff','#d6a642'];
+  for(let i=0;i<80;i++){
+    const piece=document.createElement('i');
+    piece.style.setProperty('--x',`${Math.random()*100}vw`);
+    piece.style.setProperty('--size',`${8+Math.random()*12}px`);
+    piece.style.setProperty('--color',colors[i%colors.length]);
+    piece.style.setProperty('--duration',`${4+Math.random()*3}s`);
+    piece.style.setProperty('--delay',`${Math.random()*2}s`);
+    piece.style.setProperty('--drift',`${Math.random()*30-15}vw`);
+    piece.style.setProperty('--spin',`${Math.random()*1400-700}deg`);
+    container.appendChild(piece);
+  }
+}
+function finishCelebration(){
+  if(!playing)return;
+  clearTimeout(finishTimer);clearTimeout(speechTimer);
+  if(speechSupported)window.speechSynthesis.cancel();
+  overlay.hidden=true;document.body.classList.remove('celebrating');
+  document.getElementById('confetti').replaceChildren();
+  playing=false;previewButton.disabled=false;
+  if(previousFocus&&typeof previousFocus.focus==='function')previousFocus.focus({preventScroll:true});
+  setTimeout(playNext,400);
+}
+function playNext(){
+  if(playing||!celebrationQueue.length||document.hidden)return;
+  const event=celebrationQueue.shift();playing=true;previewButton.disabled=true;
+  previousFocus=document.activeElement;
+  document.getElementById('celebrationName').textContent=event.agentName;
+  document.getElementById('celebrationBadge').textContent=event.preview?'SHOUT-OUT PREVIEW':'APPLICATION RECORDED';
+  document.getElementById('celebrationCredit').textContent=event.preview?'DEMO · TOTALS STAY THE SAME':'+1 APPLICATION';
+  document.getElementById('celebrationFooter').textContent=celebrationQueue.length?`${celebrationQueue.length} MORE SHOUT-OUT${celebrationQueue.length===1?'':'S'} COMING UP`:'LET’S HEAR IT FOR THE TEAM';
+  overlay.hidden=false;document.body.classList.add('celebrating');makeConfetti();
+  document.getElementById('closeCelebration').focus({preventScroll:true});
+  chime();
+  speechTimer=setTimeout(()=>speak(`Shout-out to ${event.agentName}! Another application on the board. Let’s go, Palmetto!`),650);
+  finishTimer=setTimeout(finishCelebration,9000);
+}
+document.getElementById('closeCelebration').addEventListener('click',finishCelebration);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&playing)finishCelebration();});
+previewButton.addEventListener('click',()=>{
+  if(playing)return;
+  const names=boardRows.map(r=>r.full_name);
+  celebrationQueue.push({agentName:names[Math.floor(Math.random()*names.length)]||'Team Palmetto',preview:true});playNext();
+});
+const fullscreenButton=document.getElementById('fullscreenButton');
+if(!document.documentElement.requestFullscreen)fullscreenButton.hidden=true;
+fullscreenButton.addEventListener('click',async()=>{
+  try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{feedStatus.textContent='Use your TV browser’s full-screen control';}
+});
+document.addEventListener('fullscreenchange',()=>{fullscreenButton.textContent=document.fullscreenElement?'Exit full screen':'Full screen';});
+async function pollCelebrations(){
+  if(pollBusy)return;pollBusy=true;
+  try{
+    for(let pageNumber=0;pageNumber<4;pageNumber++){
+      const suffix=feed.cursor===null?'':`?after=${feed.cursor}`;
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+      let response;
+      try{response=await fetch(U+'/functions/v1/leaderboard-celebrations'+suffix,{headers:{apikey:K},cache:'no-store',signal:controller.signal});}
+      finally{clearTimeout(timeout);}
+      if(!response.ok)throw new Error('Shout-out feed unavailable');
+      const page=await response.json();
+      celebrationQueue.push(...feed.accept(page));playNext();
+      feedStatus.textContent=soundEnabled?'Shout-outs live · sound on':'Shout-outs live · click Enable sound for audio';
+      if(!page.hasMore)break;
+    }
+  }catch{feedStatus.textContent='Shout-outs reconnecting…';}
+  finally{pollBusy=false;}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){pollCelebrations();playNext();}});
+pollCelebrations();
+setInterval(pollCelebrations,15000);
 </script>
 </body>
 </html>
