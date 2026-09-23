@@ -29,6 +29,10 @@ tbody tr:last-child td{border-bottom:0}
 .milestone{text-align:left;white-space:normal;line-height:1.25;font-size:17px}
 .bar{height:7px;background:#182d49;border-radius:99px;overflow:hidden;margin-top:9px}
 .fill{height:100%;background:linear-gradient(90deg,#e9b949,#f7d774);border-radius:99px}
+.office-total{margin-top:20px;background:linear-gradient(180deg,rgba(16,34,58,.96),rgba(10,24,41,.96));border:1px solid var(--line);border-radius:22px;padding:24px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 18px 60px rgba(0,0,0,.22)}
+.office-total-label{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.office-total-sub{margin-top:6px;color:#71839a;font-size:13px}
+.office-total-value{font-size:56px;line-height:1;font-weight:950;color:var(--gold)}
 footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;margin-top:14px;padding:0 4px}
 .error{display:none;margin-top:16px;padding:14px;border:1px solid #67333a;background:#30171d;color:#ffb8c0;border-radius:12px}
 @media(max-width:1100px){.wrap{padding:22px 18px}.board{overflow-x:auto}table{min-width:1150px}.status{display:none}}
@@ -56,6 +60,13 @@ footer{display:flex;justify-content:space-between;color:#71839a;font-size:12px;m
 </tr></thead>
 <tbody id="rows"><tr><td colspan="8" style="padding:60px;text-align:center;color:#9fb0c7">Loading leaderboard...</td></tr></tbody>
 </table>
+</div>
+<div class="office-total">
+  <div>
+    <div class="office-total-label">Office Total Applications</div>
+    <div class="office-total-sub">Combined AEP applications across all agents</div>
+  </div>
+  <div id="officeTotal" class="office-total-value">0</div>
 </div>
 <div id="error" class="error"></div>
 <footer><span>* Talk time backfill currently through 10:59 AM CT; live duration sync is being corrected.</span><span>Auto-refresh: 15 seconds</span></footer>
@@ -86,6 +97,8 @@ async function load(){
       '<td class="milestone"><div>'+esc(r.next_milestone)+'</div><div class="bar"><div class="fill" style="width:'+progress(Number(r.aep_apps||0))+'%"></div></div></td>'+
       '</tr>';
     }).join("");
+    const officeTotal=d.reduce((sum,r)=>sum+Number(r.aep_apps||0),0);
+    document.getElementById("officeTotal").textContent=officeTotal.toLocaleString("en-US");
     document.getElementById("updated").textContent="Updated "+new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date())+" CT";
     er.style.display="none";
   }catch(err){
