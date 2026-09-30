@@ -16,6 +16,27 @@ agent name. It checks the existing public TV application key and never returns
 client identities, contact IDs, health data, or intake payloads. It needs the
 standard Supabase URL and service-role environment variables server-side.
 
+## Milestones
+
+The TV shows one target at a time, based on each agent's submitted AEP total:
+
+| Reward | Submitted target | Successful applications to qualify |
+| --- | ---: | ---: |
+| Holiday Break | 80 | 65 |
+| Aruba Trip | 125 | 100 |
+| $1,000 Flight Credit | 160 | 125 |
+| $2,000 Bonus | 200 | 150 |
+
+At 80, 125, and 160 submitted applications, the next target appears and its bar
+restarts at zero. Progress measures the applications since the previous target:
+0–80, 80–125, 125–160, and 160–200. At 200 and above, the final target stays
+visible with a full bar. Submitted targets do not confirm successful-application
+qualification. The display calculates both the label and bar from `aep_apps`;
+the legacy backend `next_milestone` text is not used by this TV page.
+
+Run `node --test aep-leaderboard/*.test.mjs` to verify the milestones and
+celebration behavior.
+
 ## Audio
 
 The six recorded MP3 files work without installed speech-synthesis voices.
